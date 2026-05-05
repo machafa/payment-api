@@ -7,7 +7,7 @@
 
 O sistema de pagamentos requer uma stack que permita entrega rápida de uma MVP funcional num prazo de uma semana, sem comprometer a qualidade do código, a segurança das transações, ou capacidade de escalar futuramente. O sistema opera no contexto Moçambicano, onde a baica conectividade e a integração com providers locais como M-Pesa e e-Mola são requisitos centrais.
 
-## Decisão
+## Decisão 
 
 Adoptar **Node.js com TypeScript** como linguagem e runtime, **Express** como framework HTTP, e **pag (node-postgres)** como driver de base de dados.
 
