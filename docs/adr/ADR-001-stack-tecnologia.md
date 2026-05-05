@@ -29,4 +29,4 @@ Adoptar **Node.js com TypeScript** como linguagem e runtime, **Express** como fr
 **ORM (Prisma)** - aceleraria o desenvolvimento inicial mas introduziria abstracção sobre queries críticas e dificultaria optimização futura em cenários de alta carga.
 
 ##Consequências
-O sistema ganha velociadade de desevolvimento e clareza de código. Em contrapartida, a gestão de megrações SQL e a escrita de queries são responsabilidade explícita da equipa. Numa fase de escala, esta decisão facilita a migração para um query builder como Knex.js ou para stored procedures sem necessidade de remover um ORM.
+O sistema ganha velociadade de desevolvimento e clareza de código. Em contrapartida, a gestão de migrações SQL e a escrita de queries são responsabilidade explícita da equipa. Numa fase de escala, esta decisão facilita a migração para um query builder como Knex.js ou para stored procedures sem necessidade de remover um ORM.
