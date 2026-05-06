@@ -3,9 +3,9 @@
 ## Development Guidelines
 
 ### Nomenclatura de ficheiros
-- Ficheiros TypeScript: `kebab-case` → `payment.service.ts`
+- Ficheiros e variáveis: `snake_case` → `payment_service.ts`
 - Classes: `PascalCase` → `MpesaGateway`
-- Variáveis e funções: `camelCase` → `createPayment`
+- Funções: `camelCase` → `createPayment`
 - Variáveis de ambiente: `SCREAMING_SNAKE_CASE` → `DATABASE_URL`
 - Pastas: `kebab-case` → `payment-api/`
 
