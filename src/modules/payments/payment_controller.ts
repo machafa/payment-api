@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import * as paymentService from './payment_service.js'; // Removido .js para padrão TS
+import * as paymentService from './payment_service.js';
 import { createPaymentDTO } from './payment_types.js';
 
 export const createPayment = async (
@@ -8,22 +8,20 @@ export const createPayment = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    // 1. Tratamento robusto do Header (Resolve o erro de string | string[])
+    // 1. Tratamento robusto do Header
     const idempotencyKeyRaw = req.headers['idempotency-key'];
     
+    // Verificação explícita para satisfazer o compilador
+    if (!idempotencyKeyRaw) {
+      res.status(400).json({ error: 'Idempotency-Key header is required' });
+      return;
+    }
+
     const idempotency_key = Array.isArray(idempotencyKeyRaw)
       ? idempotencyKeyRaw[0]
       : (idempotencyKeyRaw as string);
 
-    if (!idempotency_key) {
-      res.status(400).json({
-        error: 'Idempotency-Key header is required'
-      });
-      return;
-    }
-
-    // 2. Mapeamento do DTO com valores padrão (Fallback)
-    // Isso evita o erro INS-19 do M-Pesa se o front-end esquecer as referências
+    // 2. Mapeamento do DTO
     const data: createPaymentDTO = {
       amount: req.body.amount,
       currency: req.body.currency || 'MZN',
@@ -34,10 +32,8 @@ export const createPayment = async (
       idempotency_key: idempotency_key,
     };
 
-    // 3. Chamada ao serviço
     const payment = await paymentService.createPayment(data);
 
-    // 202 Accepted é o ideal para pagamentos assíncronos (M-Pesa)
     res.status(202).json({
       payment_id: payment.id,
       payment_status: payment.status,
@@ -46,7 +42,7 @@ export const createPayment = async (
       created_at: payment.created_at,
     });
   } catch (error) {
-    next(error); // Encaminha para o seu Error Handler global
+    next(error);
   }
 };
 
@@ -56,8 +52,17 @@ export const getPayment = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { id } = req.params;
-    const payment = await paymentService.getPayment(id);
+    // RESOLUÇÃO DO ERRO TS2345:
+    // Extraímos o ID e garantimos que ele existe e é tratado como string
+    const id = req.params.id;
+
+    if (!id) {
+      res.status(400).json({ error: 'Payment ID is required' });
+      return;
+    }
+
+    // Usamos o casting (as string) para garantir o contrato com o Service
+    const payment = await paymentService.getPayment(id as string);
 
     if (!payment) {
       res.status(404).json({ error: 'Payment not found' });

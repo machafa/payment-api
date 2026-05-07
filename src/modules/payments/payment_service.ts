@@ -1,5 +1,5 @@
 import * as paymentRepository from './payment_repository.js'; // Removido .js
-import * as mpesaGateway from '../gateways/mpesa_gateway.js';    // Corrigido o import
+import * as mpesaGateway from '../../gateways/mpesa_gateway.js';    // Corrigido o import
 import { createPaymentDTO, Payment } from './payment_types.js'; // Removido .js
 
 export const createPayment = async (data: createPaymentDTO): Promise<Payment> => {

@@ -4,6 +4,7 @@ describe('Payment Types Logic', () => {
   it('should validate a payment object structure', () => {
     const mockPayment: Payment = {
       id: '123',
+      currency:'MZN',
       amount: 100,
       method: 'MPESA',
       status: 'PENDING',
