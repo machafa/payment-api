@@ -37,7 +37,7 @@ export interface webhookPayload{
     output_response_code:string;
     output_response_description:string;
     output_response_message:string;
-    mpesa_transaction_id:string;
-    mpesa_conversation_id:string;
+    output_transaction_id:string;
+    output_conversation_id:string;
     output_third_party_reference:string;
 }
