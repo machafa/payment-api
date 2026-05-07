@@ -1,11 +1,12 @@
-export type paymentStatus='PENDING'|'COMPLETED'|'FAILED';
-export type paymentMethod='MPESA';
+export type payment_status='PENDING'|'COMPLETED'|'FAILED';
+export type payment_method='MPESA';
 
 export interface Payment{
     id:string;
     amount:number;
-    method:paymentMethod;
-    status:paymentStatus;
+    currency:string;
+    method:payment_method;
+    status:payment_status;
     customer_msisdn:string;
     transaction_reference:string;
     third_party_reference:string;
@@ -19,7 +20,7 @@ export interface Payment{
 export interface createPaymentDTO{
     amount:number;
     currency:string;
-    method:paymentMethod;
+    method:payment_method;
     customer_msisdn:string;
     transaction_reference:string;
     third_party_reference:string;
@@ -27,7 +28,7 @@ export interface createPaymentDTO{
 }
 
 export interface updatePaymentDTO{
-    status:paymentStatus;
+    status:payment_status;
     mpesa_transaction_id?:string;
     mpesa_conversation_id?:string;
 }
