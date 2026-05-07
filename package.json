@@ -7,7 +7,9 @@
     "build": "tsc",
     "lint": "eslint .",
     "test": "jest",
-    "dev": "tsx watch src/init.ts"
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "dev": "tsx watch src/app.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
