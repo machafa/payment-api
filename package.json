@@ -1,17 +1,17 @@
 {
   "name": "payment-api",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc",
     "lint": "eslint .",
     "test": "jest",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/init.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
-    "pg": "^8.20.0",
-    "dotenv": "^16.4.5"
+    "pg": "^8.20.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
@@ -20,8 +20,10 @@
     "@types/pg": "^8.11.10",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.0.0",
     "jest": "^29.7.0",
+    "jest-util": "^30.3.0",
     "ts-jest": "^29.2.5",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"

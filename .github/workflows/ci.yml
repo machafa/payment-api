@@ -1,10 +1,12 @@
+# Adiciona isto no topo do teu ci.yml ou pr.yml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 name: CI - Quality Gates
 
 on:
   push:
     branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   validate:
@@ -28,6 +30,14 @@ jobs:
           npm run build
 
       - name: All Tests (Unit & Integration)
+        env:
+          PORT: ${{ secrets.PORT }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          API_KEY: ${{ secrets.API_KEY }}
+          MPESA_API_KEY: ${{ secrets.MPESA_API_KEY }}
+          MPESA_PUBLIC_KEY: ${{ secrets.MPESA_PUBLIC_KEY }}
+          MPESA_BASE_URL: ${{ secrets.MPESA_BASE_URL }}
+          MPESA_SERVICE_PROVIDER_CODE: ${{ secrets.MPESA_SERVICE_PROVIDER_CODE }}
         run: |
           npm test
           npm run test:unit
