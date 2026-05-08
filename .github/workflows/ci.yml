@@ -1,63 +1,57 @@
-name: payment project
+name: CI - Quality Gates
+
 on:
   push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - main
-      - develop
+    branches: [ main, develop ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
-    name: build and tests
+  validate:
+    name: Build and Tests
     runs-on: ubuntu-latest
-    container: node:20
 
+    # Service container for Integration Tests
     services:
       postgres:
         image: postgres:15
+        env:
+          POSTGRES_USER: machafa
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: payment_db
         ports:
           - 5432:5432
-
         options: >-
-          --health-cmd="pg_isready -U machafa"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
+      - uses: actions/checkout@v4
       
-      - uses: actions/checkout@v3
-
-      - name: setup nodejs
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: install dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: run build
-        run: npm run build
-
-      - name: run lint
+      - name: Lint Check
         run: npm run lint
 
-      - name: run tests
-        run: npm test
-      
-      - name: run unit tests
-        run: npm run test:unit
-      
-      - name: run integration tests
-        run: npm run test:integration
-      
-      - name: build docker image
-        run: docker build -t payment-api:latest .
+      - name: Type Check & Build
+        run: npm run build
 
-    
-
-      
+      - name: Run Tests (Unit & Integration)
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://machafa:Z6Au2eabY1Z4S2T1sFLaZa24DxC1q5mw@dpg-d7usachj2pic73c7ba10-a.virginia-postgres.render.com/payment_db_6uga?sslmode=require
+          MPESA_API_KEY: ${{ secrets.MPESA_API_KEY }}
+        run: |
+          npm run test:unit
+          npm run test:integration

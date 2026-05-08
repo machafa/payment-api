@@ -1,48 +1,64 @@
-name: Deploy
+name: CD - Production Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI - Quality Gates"]
     branches: [main]
+    types: [completed]
 
 jobs:
   deploy:
-    name: Deploy to Kubernetes
+    name: Build & Push to K8s
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build TypeScript
-        run: npm run build
-
-      - name: Build Docker image
-        run: docker build -t payment-api:${{ github.sha }} .
-
-      - name: Login to Docker registry
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-      - name: Push Docker image
-        run: docker push payment-api:${{ github.sha }}
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/payment-api:latest
+            ${{ secrets.DOCKER_USERNAME }}/payment-api:${{ github.sha }}
 
       - name: Setup kubectl
-        run: |
-          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-          chmod +x kubectl
-          sudo mv kubectl /usr/local/bin/kubectl
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
 
       - name: Deploy to Kubernetes
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
         run: |
-          kubectl set image deployment/payment-api payment-api=payment-api:${{ github.sha }}
+          # Update the image in the deployment manifest
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/payment-api:${{ github.sha }}|g" k8s/deployment.yaml
+          
+          # Apply all manifests (Secrets, ConfigMaps, Deployment, Service)
+          kubectl apply -f k8s/
+          
+          # Wait for rollout completion
           kubectl rollout status deployment/payment-api
+
+          export DATABASE_URL=${{ secrets.DATABASE_URL }}
+          export MPESA_API_KEY=${{ secrets.MPESA_API_KEY }}
+
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/payment-api:${{ github.sha }}|g" k8s/deployment.yaml
+          
+          # Aplicar manifestos
+          kubectl apply -f k8s/
+          
+          # Monitorar o Rollout e fazer Rollback se falhar
+          if ! kubectl rollout status deployment/payment-api --timeout=300s; then
+            echo "Deploy failed! Rolling back..."
+            kubectl rollout undo deployment/payment-api
+            exit 1
+          fi

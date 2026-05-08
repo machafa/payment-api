@@ -1,7 +1,7 @@
-const required=(key:string): string =>{
-    const value=process.env[key];
+const required=(API_KEY:string): string =>{
+    const value=process.env[API_KEY];
     if(!value){
-        throw new Error(`Environment variable not found: ${key}`);
+        throw new Error(`Environment variable not found: ${API_KEY}`);
     }
     return value;
 };
@@ -17,7 +17,7 @@ export const env={
 
     API_KEY:required('API_KEY'),
 
-    MPESSA_API_KEY:required('MPESSA_API_KEY'),
+    MPESA_API_KEY:required('MPESA_API_KEY'),
     MPESA_PUBLIC_KEY:required('MPESA_PUBLIC_KEY'),
     MPESA_BASE_URL:required('MPESA_BASE_URL'),
     MPESA_SERVICE_PROVIDER_CODE:required('MPESA_SERVICE_PROVIDER_CODE'),

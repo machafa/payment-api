@@ -8,8 +8,8 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": ["node","jest"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "jest.config.js", "src/migration.ts", "src/tests"],
   "exclude": ["node_modules", "dist"]
 }

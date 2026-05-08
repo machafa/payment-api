@@ -1,1 +1,4 @@
+.envnode_modules/
+dist/
 .env
+postgres_data/
