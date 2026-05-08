@@ -1,6 +1,9 @@
 import { query, getClient } from '../../config/database.js'; // Mantém o .js
 import { Payment, createPaymentDTO, updatePaymentDTO } from './payment_types.js'; // Mantém o .js
 import { randomUUID } from 'crypto'; // Módulos internos não precisam de extensão
+import * as db from '../../config/database.js';
+
+
 
 export const findByIdempotencyKey = async (key: string): Promise<Payment | null> => {
   const result = await query(
@@ -80,3 +83,27 @@ export const findByThirdPartyReference = async (reference: string): Promise<Paym
   );
   return result.rows[0] || null;
 };
+
+export const updateByReference = async (
+  reference: string, data: {status:string; mpesa_transaction_id?: string; updated_at: Date})=>{
+    const query = `
+    UPDATE payments 
+    SET 
+      status = $1, 
+      mpesa_transaction_id = $2, 
+      updated_at = $3 
+    WHERE third_party_reference = $4
+    RETURNING *;
+  `;
+
+  const values = [
+    data.status, 
+    data.mpesa_transaction_id || null, 
+    data.updated_at, 
+    reference
+  ];
+
+  // execute the query
+  const result=await db.query(query,values);
+  return result.rows[0];
+  }
