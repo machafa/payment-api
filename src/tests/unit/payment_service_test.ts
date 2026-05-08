@@ -1,14 +1,13 @@
 import { jest } from '@jest/globals';
 
-// 1. INJEÇÃO DE AMBIENTE: Deve vir antes de todos os imports que carregam a config do banco
 process.env.DATABASE_URL = 'postgres://user:pass@localhost:5432/test_db';
 process.env.NODE_ENV = 'test';
-
-// 2. MOCKS: Sem a extensão .js e sem o diretório /src/
+process.env.API_KEY = 'test_key';
+// 2.
 jest.mock('../../modules/payments/payment_repository');
 jest.mock('../../gateways/mpesa_gateway');
 
-// 3. IMPORTS: Agora podem carregar sem disparar o erro de "variable not found"
+// 3. 
 import * as paymentRepository from '../../modules/payments/payment_repository.js';
 import * as mpesaGateway from '../../gateways/mpesa_gateway.js';
 import * as paymentService from '../../modules/payments/payment_service.js';
