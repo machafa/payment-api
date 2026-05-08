@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Payments C2B</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#ffffff] flex items-center justify-center min-h-screen">
+
+    <div class="w-full max-w-sm bg-white p-8 shadow-xl border border-gray-100">
+        <h2 class="text-[#000000] text-xl font-bold mb-6 text-center">Pagamento M-Pesa</h2>
+
+        <form id="payForm" class="space-y-6">
+            <div class="relative">
+                <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-medium">258</span>
+                <input type="tel" id="phone" maxlength="9" required
+                       class="w-full pl-14 pr-5 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium"
+                       placeholder="8XXXXXXX">
+            </div>
+
+            <div>
+                <input type="number" id="amount" step="0.01" required
+                       class="w-full px-6 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium"
+                       placeholder="Valor (MZN)">
+            </div>
+
+            <div id="msg" class="hidden text-center text-sm font-medium p-2"></div>
+
+            <button type="submit" id="btn"
+                    class="w-full bg-[#c30010] text-white py-4 font-bold shadow-xl shadow-blue-100 active:scale-95 transition-all">
+                Confirmar Pagamento
+            </button>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById('payForm');
+        const msg = document.getElementById('msg');
+        const btn = document.getElementById('btn');
+
+        form.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            btn.disabled = true;
+            btn.innerText = "A processar...";
+            msg.className = "hidden";
+
+            const fullPhone = "258" + document.getElementById('phone').value;
+            const amount = document.getElementById('amount').value;
+
+            try {
+                const res = await fetch('http://localhost:3000/api/v1/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        customer_msisdn: fullPhone, 
+                        amount: amount 
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    msg.innerText = "Verifique o seu telemóvel!";
+                    msg.className = "block text-green-600";
+                    form.reset();
+                } else {
+                    // Mapeia os códigos INS que discutimos
+                    const errorMap = {
+                        'INS-10': 'Pedido já enviado.',
+                        'INS-6': 'Transação recusada.',
+                        'INS-2051': 'Número inválido.'
+                    };
+                    msg.innerText = errorMap[data.code] || "Erro ao processar.";
+                    msg.className = "block text-red-500";
+                }
+            } catch (err) {
+                msg.innerText = "Servidor offline.";
+                msg.className = "block text-red-500";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Confirmar Pagamento";
+            }
+        };
+    </script>
+</body>
+</html>
