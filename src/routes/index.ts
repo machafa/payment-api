@@ -13,11 +13,12 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Rotas de pagamentos — com autenticação
+// payment routes with auth
 router.post('/payments', authenticate, paymentController.createPayment);
 router.get('/payments/:id', authenticate, paymentController.getPayment);
+router.post('/payments/callback', paymentController.handleCallback);
 
-// Webhook — sem autenticação (chamado pelo M-Pesa)
+// Webhook called by mpesa without auth
 router.post('/webhooks/provider', webhookController.handleWebhook);
 
 export default router;
