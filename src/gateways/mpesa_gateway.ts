@@ -41,9 +41,9 @@ export const initiatePayment = async (
     input_ThirdPartyReference: request.third_party_reference,
     input_TransactionReference: request.transaction_reference,
 
-    // O TOQUE MÁGICO DO NGROK:
-    input_ResultURL: 'https://footbath-subatomic-yodel.ngrok-free.dev/api/v1/payments/callback',
-    input_CallbackURL: 'https://footbath-subatomic-yodel.ngrok-free.dev/api/v1/payments/callback'
+    // adding data in grok
+    input_ResultURL: 'https://footbath-subatomic-yodel.ngrok-free.dev',
+    input_CallbackURL: '/api/v1/payments/callback'
   };
 
   const response = await fetch(
@@ -61,8 +61,8 @@ export const initiatePayment = async (
 
   const data = await response.json() as MpesaPaymentResponse;
 
-  // IMPORTANTE: O M-Pesa retorna 200 OK mesmo quando o pagamento falha (ex: INS-19)
-  // Por isso validamos o output_ResponseCode em vez de response.ok
+  
+  // ok as long its INS responSE
   if (data.output_ResponseCode !== 'INS-0' && data.output_ResponseCode !== 'INS-1') {
      throw new Error(`M-Pesa Error: ${data.output_ResponseCode} - ${data.output_ResponseDesc}`);
   }
