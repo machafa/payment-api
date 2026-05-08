@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import * as paymentService from './payment_service.js';
-import { createPaymentDTO } from './payment_types.js';
+import { createPaymentDTO,webhookPayload } from './payment_types.js';
+
 
 export const createPayment = async (
   req: Request,
@@ -46,14 +47,44 @@ export const createPayment = async (
   }
 };
 
+export const handleCallback = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const data = req.body as webhookPayload;
+    const { output_ResponseCode, output_ThirdPartyReference, output_TransactionID } = data;
+
+    console.log(`Processando Callback para Ref: ${output_ThirdPartyReference}`);
+
+    if (output_ResponseCode === 'INS-0') {
+      // we want this
+      await paymentService.updatePaymentStatus(
+        output_ThirdPartyReference, 
+        'COMPLETED', 
+        output_TransactionID
+      );
+      console.log(`Pagamento ${output_ThirdPartyReference} marcado como CONCLUÍDO.`);
+    } else {
+      // FALHA: (Utilizador cancelou, sem saldo, or something else) but we still want to update the status to FAILED and its gota be INS something
+      await paymentService.updatePaymentStatus(output_ThirdPartyReference, 'FAILED');
+      console.log(`Pagamento ${output_ThirdPartyReference} marcado como FALHADO.`);
+    }
+
+    res.status(200).json({ message: 'Callback processed' });
+  } catch (error) {
+    console.error('Erro ao atualizar DB no Callback:', error);
+    res.status(200).json({ error: 'Logged' }); // 200 so mpesa doesnt resend the pay, until further update
+  }
+};
+
 export const getPayment = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    // RESOLUÇÃO DO ERRO TS2345:
-    // Extraímos o ID e garantimos que ele existe e é tratado como string
     const id = req.params.id;
 
     if (!id) {
@@ -61,7 +92,7 @@ export const getPayment = async (
       return;
     }
 
-    // Usamos o casting (as string) para garantir o contrato com o Service
+    // casting as string for the servico to avoid type issues
     const payment = await paymentService.getPayment(id as string);
 
     if (!payment) {
