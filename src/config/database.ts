@@ -5,27 +5,36 @@ const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-  ssl: { rejectUnauthorized: false },
+  // add time to 10 secs(10000ms)
+  // give time for DNS to dolve the ssl handshake 
+  connectionTimeoutMillis: 10000, 
+  ssl: { 
+    rejectUnauthorized: false 
+  },
 });
 
 pool.on('error', (err) => {
-  console.error('Error:', err);
-  process.exit(-1);
+  // Como Lead, evita dar process.exit(-1) em produção sem logs detalhados
+  console.error('Unexpected error on idle client:', err);
 });
 
 export const query = async (text: string, params?: unknown[]) => {
   const start = Date.now();
-  const result = await pool.query(text, params);
-  const duration = Date.now() - start;
+  try {
+    const result = await pool.query(text, params);
+    const duration = Date.now() - start;
 
-  console.log('Query executed', {
-    text,
-    duration,
-    rows: result.rowCount,
-  });
+    console.log('Query executed', {
+      text,
+      duration,
+      rows: result.rowCount,
+    });
 
-  return result;
+    return result;
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw error; // Re-lança para o teu errorHandler no app.ts capturar
+  }
 };
 
 export const getClient = () => pool.connect();

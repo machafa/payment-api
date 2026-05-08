@@ -4,150 +4,71 @@ import { Express } from 'express';
 const swaggerDocument = {
   openapi: '3.0.0',
   info: {
-    title: 'Payment API',
+    title: 'Payment API - M-Pesa Integration',
     version: '1.0.0',
-    description: 'Sistema de pagamentos resiliente para Moçambique com integração M-Pesa',
+    description: 'Sistema de pagamentos resiliente para em MPesa com foco em baixa conectividade e idempotência.',
     contact: {
-      name: 'Fadzai Machafa',
-      email: 'fadzai@example.com',
+      name: 'Penelope Machafa',
+      email: 'penelopesydney80@gmail.com',
     },
   },
   servers: [
     {
       url: 'http://localhost:3000/api/v1',
-      description: 'Desenvolvimento local',
+      description: 'Ambiente de Desenvolvimento Local',
     },
     {
       url: 'https://payment-api.wolkehost.com/api/v1',
-      description: 'Produção',
-    },
+      description: 'Ambiente de Produção (Wolke Host)',
+    }
   ],
   components: {
     securitySchemes: {
       bearerAuth: {
         type: 'http',
         scheme: 'bearer',
-        description: 'API Key no formato Bearer <api-key>',
+        bearerFormat: 'JWT',
+        description: 'Insere a tua API Key para testar os endpoints protegidos.',
       },
     },
     schemas: {
       CreatePaymentRequest: {
         type: 'object',
-        required: [
-          'amount',
-          'currency',
-          'method',
-          'customer_msisdn',
-          'transaction_reference',
-          'third_party_reference',
-        ],
+        required: ['amount', 'currency', 'method', 'customer_msisdn', 'transaction_reference', 'third_party_reference'],
         properties: {
-          amount: {
-            type: 'number',
-            example: 100.00,
-            description: 'Valor do pagamento',
-          },
-          currency: {
-            type: 'string',
-            example: 'MZN',
-            description: 'Código da moeda',
-          },
-          method: {
-            type: 'string',
-            enum: ['MPESA'],
-            example: 'MPESA',
-            description: 'Método de pagamento',
-          },
-          customer_msisdn: {
-            type: 'string',
-            example: '258841234567',
-            description: 'Número de telefone do cliente',
-          },
-          transaction_reference: {
-            type: 'string',
-            example: 'T1234567',
-            description: 'Referência única da transacção',
-          },
-          third_party_reference: {
-            type: 'string',
-            example: 'REF123',
-            description: 'Referência do sistema externo',
-          },
+          amount: { type: 'number', example: 150.50 },
+          currency: { type: 'string', example: 'MZN' },
+          method: { type: 'string', enum: ['MPESA'], example: 'MPESA' },
+          customer_msisdn: { type: 'string', example: '258841234567', description: 'Formato MSISDN Moçambique' },
+          transaction_reference: { type: 'string', example: 'TXN_998877' },
+          third_party_reference: { type: 'string', example: 'ORDER_456' },
         },
       },
       PaymentResponse: {
         type: 'object',
         properties: {
-          payment_id: {
-            type: 'string',
-            format: 'uuid',
-            example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-          },
-          payment_status: {
-            type: 'string',
-            enum: ['PENDING', 'SUCCESS', 'FAILED'],
-            example: 'PENDING',
-          },
-          amount: {
-            type: 'number',
-            example: 100.00,
-          },
-          currency: {
-            type: 'string',
-            example: 'MZN',
-          },
-          created_at: {
-            type: 'string',
-            format: 'date-time',
-            example: '2026-05-04T12:00:00Z',
-          },
+          payment_id: { type: 'string', format: 'uuid', example: '550e8400-e29b-41d4-a716-446655440000' },
+          payment_status: { type: 'string', enum: ['PENDING', 'SUCCESS', 'FAILED'], example: 'PENDING' },
+          amount: { type: 'number', example: 150.50 },
+          currency: { type: 'string', example: 'MZN' },
+          created_at: { type: 'string', format: 'date-time', example: '2026-05-08T17:45:00Z' },
         },
       },
       WebhookPayload: {
         type: 'object',
-        required: [
-          'output_ResponseCode',
-          'output_ThirdPartyReference',
-        ],
+        required: ['output_ResponseCode', 'output_ThirdPartyReference'],
         properties: {
-          output_ResponseCode: {
-            type: 'string',
-            example: 'INS-0',
-            description: 'Código de resposta do M-Pesa. INS-0 indica sucesso.',
-          },
-          output_ResponseDesc: {
-            type: 'string',
-            example: 'Request processed successfully',
-          },
-          output_TransactionID: {
-            type: 'string',
-            example: 'ABC123456789',
-          },
-          output_ConversationID: {
-            type: 'string',
-            example: 'CONV123456',
-          },
-          output_ThirdPartyReference: {
-            type: 'string',
-            example: 'REF123',
-          },
+          output_ResponseCode: { type: 'string', example: 'INS-0', description: 'INS-0 = Sucesso' },
+          output_ResponseDesc: { type: 'string', example: 'Request processed successfully' },
+          output_TransactionID: { type: 'string', example: 'M98J123L7' },
+          output_ThirdPartyReference: { type: 'string', example: 'ORDER_456' },
         },
       },
       ErrorResponse: {
         type: 'object',
         properties: {
-          error: {
-            type: 'string',
-            example: 'Payment not found',
-          },
-          path: {
-            type: 'string',
-            example: '/api/v1/payments/123',
-          },
-          timestamp: {
-            type: 'string',
-            format: 'date-time',
-          },
+          error: { type: 'string', example: 'Idempotency-Key missing' },
+          timestamp: { type: 'string', format: 'date-time' },
         },
       },
     },
@@ -155,31 +76,19 @@ const swaggerDocument = {
   paths: {
     '/health': {
       get: {
-        summary: 'Health check',
-        description: 'Verifica se o servidor está a funcionar',
+        summary: 'Verificar status do sistema',
         tags: ['System'],
         responses: {
           200: {
-            description: 'Servidor online',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    status: { type: 'string', example: 'ok' },
-                    timestamp: { type: 'string', format: 'date-time' },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+            description: 'API operacional',
+            content: { 'application/json': { schema: { type: 'object', properties: { status: { type: 'string', example: 'ok' } } } } }
+          }
+        }
+      }
     },
     '/payments': {
       post: {
-        summary: 'Criar pagamento',
-        description: 'Inicia um novo pagamento via M-Pesa. Retorna imediatamente com status PENDING. O resultado final chega via webhook.',
+        summary: 'Iniciar pagamento M-Pesa',
         tags: ['Payments'],
         security: [{ bearerAuth: [] }],
         parameters: [
@@ -187,143 +96,80 @@ const swaggerDocument = {
             name: 'Idempotency-Key',
             in: 'header',
             required: true,
-            schema: { type: 'string' },
-            description: 'Chave única para evitar pagamentos duplicados',
-            example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-          },
+            schema: { type: 'string', format: 'uuid' },
+            example: '77c5b6b8-1c40-4f9e-9f8a-987654321000'
+          }
         ],
         requestBody: {
-          required: true,
           content: {
             'application/json': {
               schema: { $ref: '#/components/schemas/CreatePaymentRequest' },
-            },
-          },
+              example: {
+                amount: 150,
+                currency: 'MT',
+                method: 'MPESA',
+                customer_msisdn: '258855872316',
+                transaction_reference: 'TXN_TEST_01',
+                third_party_reference: 'ORDER_TEST_01'
+              }
+            }
+          }
         },
         responses: {
-          202: {
-            description: 'Pagamento iniciado — aguarda confirmação do cliente',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/PaymentResponse' },
-              },
-            },
-          },
-          400: {
-            description: 'Dados inválidos ou Idempotency-Key em falta',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-          401: {
-            description: 'Não autorizado',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-          500: {
-            description: 'Erro interno do servidor',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
+          202: { description: 'Pagamento Aceite', content: { 'application/json': { schema: { $ref: '#/components/schemas/PaymentResponse' } } } },
+          400: { description: 'Bad Request', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          401: { description: 'Unauthorized' }
+        }
+      }
     },
     '/payments/{id}': {
       get: {
-        summary: 'Consultar pagamento',
-        description: 'Retorna os detalhes de um pagamento pelo ID',
+        summary: 'Consultar estado do pagamento',
         tags: ['Payments'],
         security: [{ bearerAuth: [] }],
-        parameters: [
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            schema: { type: 'string', format: 'uuid' },
-            description: 'ID único do pagamento',
-            example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-          },
-        ],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
         responses: {
-          200: {
-            description: 'Pagamento encontrado',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/PaymentResponse' },
-              },
-            },
-          },
-          404: {
-            description: 'Pagamento não encontrado',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-          401: {
-            description: 'Não autorizado',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
+          200: { content: { 'application/json': { schema: { $ref: '#/components/schemas/PaymentResponse' } } } },
+          404: { description: 'Não encontrado' }
+        }
+      }
     },
     '/webhooks/provider': {
       post: {
-        summary: 'Webhook M-Pesa',
-        description: 'Endpoint chamado pelo M-Pesa para notificar o resultado de um pagamento. Não requer autenticação — é chamado directamente pela Vodacom.',
+        summary: 'Callback do M-Pesa (Webhook)',
+        description: 'Endpoint para recepção de notificações da Vodacom/M-Pesa.',
         tags: ['Webhooks'],
         requestBody: {
-          required: true,
           content: {
             'application/json': {
               schema: { $ref: '#/components/schemas/WebhookPayload' },
-            },
-          },
+              example: {
+                output_ResponseCode: "INS-0",
+                output_ResponseDesc: "Success",
+                output_TransactionID: "MPK12345",
+                output_ThirdPartyReference: "ORDER_TEST_01"
+              }
+            }
+          }
         },
         responses: {
-          200: {
-            description: 'Webhook processado com sucesso',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  properties: {
-                    message: { type: 'string', example: 'Webhook processed successfully' },
-                  },
-                },
-              },
-            },
-          },
-          400: {
-            description: 'Payload inválido',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
-    },
-  },
+          200: { description: 'Recebido' }
+        }
+      }
+    }
+  }
 };
 
 export const setupSwagger = (app: Express): void => {
+  // Rota para documentação UI
   app.use('/api/v1/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-  console.log('Swagger disponível em /api/v1/docs');
+  
+  // Rota para o JSON puro (útil para ferramentas de validação no CI/CD)
+  app.get('/api/v1/swagger.json', (req, res) => {
+    res.json(swaggerDocument);
+  });
+
+  console.log('Swagger funcional em: http://localhost:3000/api/v1/docs');
 };
 
 export default swaggerDocument;
