@@ -10,7 +10,7 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  // Como Lead, evita dar process.exit(-1) em produção sem logs detalhados
+  
   console.error('Unexpected error on idle client:', err);
 });
 
@@ -29,7 +29,7 @@ export const query = async (text: string, params?: unknown[]) => {
     return result;
   } catch (error) {
     console.error('Database query error:', error);
-    throw error; // Re-lança para o teu errorHandler no app.ts capturar
+    throw error; 
   }
 };
 
