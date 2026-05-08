@@ -15,7 +15,6 @@ export default {
     ],
   },
   moduleNameMapper: {
-    //solving the ts importation
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-  },
+  '^(\\.{1,2}/.*)\\.js$': '$1',
+},
 };
