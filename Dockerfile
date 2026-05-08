@@ -1,15 +1,9 @@
 # ==========================================
 # ESTÁGIO 1: Build (Compilação)
-# ==========================================
-# Usamos a imagem 'slim' para garantir que temos as ferramentas de build 
-# mas mantendo o ambiente leve.
-FROM node:20-slim AS builder
+FROM node:20-alpine AS builder
 
 # Definir diretório de trabalho
 WORKDIR /app
-
-# Copiar apenas os ficheiros de definição de dependências primeiro.
-# Isto permite que o Docker faça cache das camadas de instalação.
 COPY package*.json ./
 
 # Instalação limpa das dependências (incluindo devDependencies para o build)
@@ -25,7 +19,7 @@ RUN npm run build
 # ESTÁGIO 2: Runtime (Execução)
 # ==========================================
 # Iniciamos uma nova imagem limpa, sem o código fonte ou ferramentas de build
-FROM node:20-slim
+FROM node:20-alpine
 
 WORKDIR /app
 
