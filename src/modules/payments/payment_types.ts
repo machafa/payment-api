@@ -34,10 +34,10 @@ export interface updatePaymentDTO{
 }
 
 export interface webhookPayload{
-    output_response_code:string;
-    output_response_description:string;
-    output_response_message:string;
-    output_transaction_id:string;
-    output_conversation_id:string;
-    output_third_party_reference:string;
+    output_ResponseCode:string;
+    output_ResponseDescription:string;
+    output_ResponseMessage:string;
+    output_TransactionID:string;
+    output_ConversationID:string;
+    output_ThirdPartyReference:string;
 }
