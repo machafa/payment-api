@@ -1,4 +1,5 @@
 import express from 'express';
+import 'dotenv/config';
 import { requestLogger } from './middleware/logger.js';
 import { errorHandler } from './middleware/error_handler.js';
 import router from './routes/index.js';
@@ -12,8 +13,6 @@ app.use(requestLogger);
 
 // Rotas
 app.use('/api/v1', router);
-
-// Error handler — deve ser o último middleware
 app.use(errorHandler);
 
 const start = async (): Promise<void> => {
