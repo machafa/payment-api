@@ -9,7 +9,6 @@ on:
 jobs:
   deploy:
     name: Build & Push to K8s
-    # Só executa se o workflow de CI passou com sucesso
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
@@ -28,7 +27,6 @@ jobs:
         with:
           context: .
           push: true
-          # Usando o seu usuário do Docker Hub (ex: machafa)
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/payment-api:latest
             ${{ secrets.DOCKER_USERNAME }}/payment-api:${{ github.sha }}
@@ -41,6 +39,11 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          # Atualiza o deployment com a imagem que tem a TAG única do commit (SHA)
-          kubectl set image deployment/payment-api payment-api=${{ secrets.DOCKER_USERNAME }}/payment-api:${{ github.sha }}
+          # Update the image in the deployment manifest
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/payment-api:${{ github.sha }}|g" k8s/deployment.yaml
+          
+          # Apply all manifests (Secrets, ConfigMaps, Deployment, Service)
+          kubectl apply -f k8s/
+          
+          # Wait for rollout completion
           kubectl rollout status deployment/payment-api
