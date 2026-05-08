@@ -47,3 +47,18 @@ jobs:
           
           # Wait for rollout completion
           kubectl rollout status deployment/payment-api
+
+          export DATABASE_URL=${{ secrets.DATABASE_URL }}
+          export MPESA_API_KEY=${{ secrets.MPESA_API_KEY }}
+
+          sed -i "s|image: .*|image: ${{ secrets.DOCKER_USERNAME }}/payment-api:${{ github.sha }}|g" k8s/deployment.yaml
+          
+          # Aplicar manifestos
+          kubectl apply -f k8s/
+          
+          # Monitorar o Rollout e fazer Rollback se falhar
+          if ! kubectl rollout status deployment/payment-api --timeout=300s; then
+            echo "Deploy failed! Rolling back..."
+            kubectl rollout undo deployment/payment-api
+            exit 1
+          fi
