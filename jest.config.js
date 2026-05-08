@@ -1,9 +1,12 @@
 export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
-  setupFiles: [
-    'dotenv/config',
-    
+  // gets the env to any route you want
+  setupFiles: ['dotenv/config,'
+    ['./src/tests/setup.ts']
+  ], 
+  testMatch: [
+    "**/src/tests/**/*_test.ts" 
   ],
   transform: {
     '^.+\\.tsx?$': [
@@ -14,6 +17,6 @@ export default {
     ],
   },
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1',
-  },
+  '^(\\.{1,2}/.*)\\.js$': '$1',
+},
 };
