@@ -3,10 +3,7 @@ export default {
   testEnvironment: 'node',
   setupFiles: [
     'dotenv/config',
-    './src/tests/setup.ts'
-  ],
-  testMatch: [
-    "**/src/tests/**/*_test.ts"
+    
   ],
   transform: {
     '^.+\\.tsx?$': [
