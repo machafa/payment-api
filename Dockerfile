@@ -20,18 +20,15 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 COPY package*.json ./
-
-#install only production dependencies
 RUN npm ci --omit=dev
 
 #copy the built js files from the builder stage
 COPY --from=builder /app/dist ./dist
 
+#start the application
+USER node
 #expose the port the app will run on
 EXPOSE 3000
 
-#start the application
-USER node
-
 #command to run the application
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/app.js"]
