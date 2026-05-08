@@ -1,16 +1,17 @@
 import { jest } from '@jest/globals';
 
-jest.mock('../../src/modules/payments/payment_repository.js');
-jest.mock('../../src/gateways/mpesa_gateway.js');
+// 1. Mocks sem a extensão .js e SEM o diretório /src/ no meio
+jest.mock('../../modules/payments/payment_repository');
+jest.mock('../../gateways/mpesa_gateway');
 
+// 2. Imports com .js (necessário para NodeNext/ESM)
 import * as paymentRepository from '../../modules/payments/payment_repository.js';
 import * as mpesaGateway from '../../gateways/mpesa_gateway.js';
 import * as paymentService from '../../modules/payments/payment_service.js';
-import { mockPayment, mockMpesaSuccess } from '../unit/mock/mpesa_mock.js';
+import { mockPayment, mockMpesaSuccess } from './mock/mpesa_mock.js'; // Ajustado se estiver na mesma pasta
 
 const mock_repository = paymentRepository as jest.Mocked<typeof paymentRepository>;
 const mock_gateway = mpesaGateway as jest.Mocked<typeof mpesaGateway>;
-
 describe('Payment Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();

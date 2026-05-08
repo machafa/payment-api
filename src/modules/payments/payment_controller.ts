@@ -1,19 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import * as paymentService from './payment_service.js';
-import { createPaymentDTO,webhookPayload } from './payment_types.js';
-
+import { createPaymentDTO, webhookPayload } from './payment_types.js';
+import logger from '../../utils/logger.js'; // Importa o logger estruturado
 
 export const createPayment = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const correlationId = `req-${Date.now()}`; // Para rastrear o fluxo completo no log
+
   try {
-    // 1. Tratamento robusto do Header
     const idempotencyKeyRaw = req.headers['idempotency-key'];
     
-    // Verificação explícita para satisfazer o compilador
     if (!idempotencyKeyRaw) {
+      logger.warn({ path: req.path, method: req.method }, 'Tentativa de pagamento sem Idempotency-Key');
       res.status(400).json({ error: 'Idempotency-Key header is required' });
       return;
     }
@@ -22,7 +23,6 @@ export const createPayment = async (
       ? idempotencyKeyRaw[0]
       : (idempotencyKeyRaw as string);
 
-    // 2. Mapeamento do DTO
     const data: createPaymentDTO = {
       amount: req.body.amount,
       currency: req.body.currency || 'MZN',
@@ -33,7 +33,19 @@ export const createPayment = async (
       idempotency_key: idempotency_key,
     };
 
+    logger.info({ 
+      correlationId, 
+      idempotency_key, 
+      ref: data.transaction_reference 
+    }, 'Iniciando criação de pagamento');
+
     const payment = await paymentService.createPayment(data);
+
+    logger.info({ 
+      correlationId, 
+      payment_id: payment.id, 
+      status: payment.status 
+    }, 'Pagamento criado com sucesso');
 
     res.status(202).json({
       payment_id: payment.id,
@@ -43,6 +55,7 @@ export const createPayment = async (
       created_at: payment.created_at,
     });
   } catch (error) {
+    logger.error({ correlationId, error: (error as Error).message }, 'Erro crítico em createPayment');
     next(error);
   }
 };
@@ -56,26 +69,37 @@ export const handleCallback = async (
     const data = req.body as webhookPayload;
     const { output_ResponseCode, output_ThirdPartyReference, output_TransactionID } = data;
 
-    console.log(`Processando Callback para Ref: ${output_ThirdPartyReference}`);
+    // Log estruturado com o payload recebido do M-Pesa
+    logger.info({ 
+      ref: output_ThirdPartyReference, 
+      mpesa_tid: output_TransactionID, 
+      code: output_ResponseCode 
+    }, 'Recebido Callback do M-Pesa');
 
     if (output_ResponseCode === 'INS-0') {
-      // we want this
       await paymentService.updatePaymentStatus(
         output_ThirdPartyReference, 
         'COMPLETED', 
         output_TransactionID
       );
-      console.log(`Pagamento ${output_ThirdPartyReference} marcado como CONCLUÍDO.`);
+      logger.info({ ref: output_ThirdPartyReference }, 'Status do pagamento atualizado para COMPLETED');
     } else {
-      // FALHA: (Utilizador cancelou, sem saldo, or something else) but we still want to update the status to FAILED and its gota be INS something
       await paymentService.updatePaymentStatus(output_ThirdPartyReference, 'FAILED');
-      console.log(`Pagamento ${output_ThirdPartyReference} marcado como FALHADO.`);
+      logger.warn({ 
+        ref: output_ThirdPartyReference, 
+        code: output_ResponseCode 
+      }, 'Pagamento falhou no provedor');
     }
 
     res.status(200).json({ message: 'Callback processed' });
   } catch (error) {
-    console.error('Erro ao atualizar DB no Callback:', error);
-    res.status(200).json({ error: 'Logged' }); // 200 so mpesa doesnt resend the pay, until further update
+    logger.error({ 
+      error: (error as Error).message, 
+      payload: req.body 
+    }, 'Erro ao processar callback do M-Pesa');
+    
+    // Mantemos o 200 para evitar retentativas infinitas do M-Pesa se o erro for de lógica
+    res.status(200).json({ error: 'Processed with internal log' });
   }
 };
 
@@ -85,17 +109,20 @@ export const getPayment = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const id = req.params.id;
+    const { id } = req.params;
 
-    if (!id) {
-      res.status(400).json({ error: 'Payment ID is required' });
+    // 1. Verificação de segurança (Type Guard)
+    if (!id || typeof id !== 'string') {
+      logger.warn({ path: req.path }, 'Tentativa de busca com ID inválido');
+      res.status(400).json({ error: 'Valid Payment ID is required' });
       return;
     }
 
-    // casting as string for the servico to avoid type issues
-    const payment = await paymentService.getPayment(id as string);
+    // 2. Agora o TS sabe que 'id' é estritamente uma string
+    const payment = await paymentService.getPayment(id);
 
     if (!payment) {
+      logger.warn({ payment_id: id }, 'Pagamento não encontrado');
       res.status(404).json({ error: 'Payment not found' });
       return;
     }
@@ -113,6 +140,7 @@ export const getPayment = async (
       updated_at: payment.updated_at,
     });
   } catch (error) {
+    logger.error({ error: (error as Error).message, payment_id: req.params.id }, 'Erro ao buscar pagamento');
     next(error);
   }
 };

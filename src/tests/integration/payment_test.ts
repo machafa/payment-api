@@ -2,12 +2,14 @@ import request from 'supertest';
 import app from '../../app.js';
 import { jest } from '@jest/globals';
 
-jest.mock('../../src/gateways/mpesa_gateway.js');
-jest.mock('../../src/modules/payments/payment_repository.js');
 
 import * as mpesaGateway from '../../gateways/mpesa_gateway.js';
 import * as paymentRepository from '../../modules/payments/payment_repository.js';
 import { mockPayment, mockMpesaSuccess } from '../unit/mock/mpesa_mock.js';
+
+
+jest.mock('../../gateways/mpesa_gateway'); 
+jest.mock('../../modules/payments/payment_repository');
 
 const mock_gateway = mpesaGateway as jest.Mocked<typeof mpesaGateway>;
 const mock_repository = paymentRepository as jest.Mocked<typeof paymentRepository>;
