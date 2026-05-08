@@ -1,7 +1,7 @@
-const required=(key:string): string =>{
-    const value=process.env[key];
+const required=(API_KEY:string): string =>{
+    const value=process.env[API_KEY];
     if(!value){
-        throw new Error(`Environment variable not found: ${key}`);
+        throw new Error(`Environment variable not found: ${API_KEY}`);
     }
     return value;
 };
