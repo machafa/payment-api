@@ -10,6 +10,6 @@
     "skipLibCheck": true,
     "types": ["node","jest"]
   },
-  "include": ["src/**/*", "jest.config.js", "migration.ts", "src/tests"],
+  "include": ["src/**/*", "jest.config.js", "src/migration.ts", "src/tests"],
   "exclude": ["node_modules", "dist"]
 }
