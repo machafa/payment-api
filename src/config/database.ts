@@ -5,12 +5,8 @@ const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
-  // add time to 10 secs(10000ms)
-  // give time for DNS to dolve the ssl handshake 
-  connectionTimeoutMillis: 10000, 
-  ssl: { 
-    rejectUnauthorized: false 
-  },
+  connectionTimeoutMillis: 10000,
+  ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
 pool.on('error', (err) => {
