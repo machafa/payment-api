@@ -10,15 +10,16 @@ export const handleWebhook=async(
             const payload:webhookPayload=req.body;
 
             //make sure we have all required fields
-            if(!payload.output_response_code||!payload.output_third_party_reference){
+            if(!payload.output_ResponseCode||!payload.output_ThirdPartyReference){
                 res.status(400).json({error:'Invalid payload'});
                 return;
             }
 
+            //log the received webhooks
             console.log('Received webhook:',{
-                response_code:payload.output_response_code,
-                transaction_id:payload.output_transaction_id,
-                third_party_reference:payload.output_third_party_reference,
+                response_code:payload.output_ResponseCode,
+                transaction_id:payload.output_TransactionID,
+                third_party_reference:payload.output_ThirdPartyReference,
             });
 
             //process the webhook
