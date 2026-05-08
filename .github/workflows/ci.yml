@@ -14,7 +14,20 @@ jobs:
     runs-on: ubuntu-latest
 
     # Service container for Integration Tests
-    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: machafa
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: payment_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +48,10 @@ jobs:
         run: npm run build
 
       - name: Run Tests (Unit & Integration)
-        
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://machafa:Z6Au2eabY1Z4S2T1sFLaZa24DxC1q5mw@dpg-d7usachj2pic73c7ba10-a.virginia-postgres.render.com/payment_db_6uga?sslmode=require
+          MPESA_API_KEY: ${{ secrets.MPESA_API_KEY }}
         run: |
           npm run test:unit
           npm run test:integration
