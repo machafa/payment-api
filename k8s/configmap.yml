@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: payment-api-config
+  namespace: default
+data:
+  NODE_ENV: production
+  PORT: "3000"
+  MPESA_BASE_URL: https://api.sandbox.vm.co.mz:18352/ipg/v1x
+  MPESA_SERVICE_PROVIDER_CODE: "171717"
