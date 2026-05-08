@@ -1,16 +1,42 @@
 ---
 
+# Payments - M-Pesa Integration
+
+## Descrição do Projeto
+
+A **Resync Payment API** é uma solução de backend de alto desempenho e missão crítica, desenvolvida para gerir o ciclo de vida de pagamentos integrados com o gateway **M-Pesa**. O sistema foi projetado sob os princípios da **Clean Architecture**, garantindo que a lógica de negócio financeira permaneça isolada de infraestruturas externas e instabilidades de rede.
+
+Num contexto onde a conectividade pode ser intermitente, esta API destaca-se pela implementação rigorosa de **Idempotência** e estratégias de **Resiliência (Exponential Backoff)**, assegurando que nenhuma transação seja duplicada ou perdida.
+
+---
+
+###  Objetivos Principais
+
+* **Segurança Transacional:** Garantia de integridade de dados através de persistência ACID no PostgreSQL.
+* **Orquestração Moderna:** Deploy totalmente contentorizado em **Kubernetes (kind)** sobre instâncias **VPS (Wolke Host)**.
+* **Automação de Infraestrutura:** Pipeline de CI/CD robusto que valida qualidade e automatiza o provisionamento via manifestos declarativos.
+* **Observabilidade:** Pronta para monitorização em tempo real com logs estruturados e probes de saúde (Liveness/Readiness).
+
+---
+
 ## Infraestrutura
 
 ### Docker
 
-```bash
-# Build
-docker build -t teu-username/payment-api:latest .
+A imagem está disponível no Docker Hub:
 
-# Push para Docker Hub
-docker push teu-username/payment-api:latest
+```bash
+docker pull machafa/payment-api:latest
 ```
+
+Para correr localmente:
+
+```bash
+docker run -p 3000:3000 --env-file .env machafa/payment-api:latest
+```
+
+O repositório no Docker Hub fica em:
+https://hub.docker.com/r/machafa/payment-api
 
 ### Kubernetes
 
