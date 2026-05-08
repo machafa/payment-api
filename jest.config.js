@@ -2,7 +2,9 @@ export default {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'node',
   // gets the env to any route you want
-  setupFiles: ['dotenv/config'], 
+  setupFiles: ['dotenv/config,'
+    ['./src/tests/setup.ts']
+  ], 
   testMatch: [
     "**/src/tests/**/*_test.ts" 
   ],

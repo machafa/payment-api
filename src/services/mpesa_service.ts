@@ -3,7 +3,7 @@ import { env } from '../config/env.js';
 
 export const generateMpesaToken = (): string | null => {
     try {
-        // A chave pública deve vir do teu env ou de um ficheiro de certificado
+       
         const publicKey = env.MPESA_PUBLIC_KEY; 
         const apiKey = env.MPESA_API_KEY;
 

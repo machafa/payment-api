@@ -5,16 +5,12 @@ const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
-  // add time to 10 secs(10000ms)
-  // give time for DNS to dolve the ssl handshake 
-  connectionTimeoutMillis: 10000, 
-  ssl: { 
-    rejectUnauthorized: false 
-  },
+  connectionTimeoutMillis: 10000,
+  ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
 pool.on('error', (err) => {
-  // Como Lead, evita dar process.exit(-1) em produção sem logs detalhados
+  
   console.error('Unexpected error on idle client:', err);
 });
 
@@ -33,7 +29,7 @@ export const query = async (text: string, params?: unknown[]) => {
     return result;
   } catch (error) {
     console.error('Database query error:', error);
-    throw error; // Re-lança para o teu errorHandler no app.ts capturar
+    throw error; 
   }
 };
 
