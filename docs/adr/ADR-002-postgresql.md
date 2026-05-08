@@ -1,11 +1,11 @@
-# ADR-002 - Escolha da base de dados: PostgreSQL
+# ADR-002 — Escolha da base de dados: PostgreSQL
 
-**Data:** 04/05/2026
+**Data:** 08/05/2026  
 **Status:** Aceite
 
 ## Contexto
 
-O sistema de pagamentos requer persistência de dados com garantias fortes de consistência. Cada transacção financeira deve ser completada integralmente ou revertida, não existindo estado intermédio aceitável. O sistema opera em contexto de baixa conectividade, onde falhas a meio de uma operação são frequentes.
+O sistema de pagamentos requer persistência de dados com garantias fortes de consistência. Cada transacção financeira deve ser completada integralmente ou revertida — não existe estado intermédio aceitável. O sistema opera em contexto de baixa conectividade, onde falhas a meio de uma operação são frequentes.
 
 ## Decisão
 
@@ -13,7 +13,7 @@ Adoptar **PostgreSQL** como base de dados principal.
 
 ## Justificação
 
-PostgreSQL suporta propriedades **ACID** na totalidade (*A*tomicidade, *C*onsistência, *I*solamento e *D*urabilidade). Num sistema de pagamentos isto é não negociável: se o servidor cair a meio de uma transferência, a transacção é revertida automaticamente. O dinheiro não desaparece nem é debitado sem ser creditado.
+PostgreSQL suporta propriedades **ACID** na totalidade — Atomicidade, Consistência, Isolamento, e Durabilidade. Num sistema de pagamentos isto é não negociável: se o servidor cair a meio de uma transferência, a transacção é revertida automaticamente. O dinheiro não desaparece nem é debitado sem ser creditado.
 
 Suporta também **transacções explícitas**, o que permite agrupar múltiplas operações — por exemplo, criar o pagamento e registar o log de auditoria — numa única operação atómica. Ou tudo acontece, ou nada acontece.
 
