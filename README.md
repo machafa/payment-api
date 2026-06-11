@@ -1,181 +1,244 @@
----
+# Payment API
 
-# Payments - M-Pesa Integration
+Sistema de pagamentos resiliente para Moçambique, com suporte a M-Pesa, desenhado para funcionar em ambientes de baixa conectividade.
 
-## Descrição do Projeto
+## Stack
 
-A **Resync Payment API** é uma solução de backend de alto desempenho e missão crítica, desenvolvida para gerir o ciclo de vida de pagamentos integrados com o gateway **M-Pesa**. O sistema foi projetado sob os princípios da **Clean Architecture**, garantindo que a lógica de negócio financeira permaneça isolada de infraestruturas externas e instabilidades de rede.
-
-Num contexto onde a conectividade pode ser intermitente, esta API destaca-se pela implementação rigorosa de **Idempotência** e estratégias de **Resiliência (Exponential Backoff)**, assegurando que nenhuma transação seja duplicada ou perdida.
-
----
-
-###  Objetivos Principais
-
-* **Segurança Transacional:** Garantia de integridade de dados através de persistência ACID no PostgreSQL.
-* **Orquestração Moderna:** Deploy totalmente contentorizado em **Kubernetes (kind)** sobre instâncias **VPS (Wolke Host)**.
-* **Automação de Infraestrutura:** Pipeline de CI/CD robusto que valida qualidade e automatiza o provisionamento via manifestos declarativos.
-* **Observabilidade:** Pronta para monitorização em tempo real com logs estruturados e probes de saúde (Liveness/Readiness).
+- **Runtime:** Node.js com TypeScript
+- **Framework:** Express
+- **Base de dados:** PostgreSQL (Render)
+- **Deploy:** Docker no Render
+- **Testes:** Jest com ts-jest
 
 ---
 
-## Infraestrutura
+## Pré-requisitos
 
-### Docker
+- Node.js >= 18
+- Docker
+- PostgreSQL (local ou Render)
+- Conta no portal M-Pesa Developer
 
-A imagem está disponível no Docker Hub:
+---
+
+## Instalação Local
 
 ```bash
-docker pull machafa/payment-api:latest
+# 1. Clonar o repositório
+git clone https://github.com/machafa/payment-api.git
+cd payment-api
+
+# 2. Instalar dependências
+npm install
+
+# 3. Configurar variáveis de ambiente
+cp .env.example .env
+# Edita o .env com as tuas credenciais
+
+# 4. Correr as migrações
+npx prisma migrate dev
+
+# 5. Iniciar o servidor
+npm run dev
 ```
-
-Para correr localmente:
-
-```bash
-docker run -p 3000:3000 --env-file .env machafa/payment-api:latest
-```
-
-O repositório no Docker Hub fica em:
-https://hub.docker.com/r/machafa/payment-api
-
-### Kubernetes
-
-Os manifests estão em `k8s/`:
-
-```bash
-# Deploy
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
-
-# Verificar estado
-kubectl get pods
-kubectl get services
-
-# Logs
-kubectl logs deployment/payment-api
-```
-
-**Nota:** O deploy de demonstração foi realizado na Wolke Host via GitHub. Os manifests Kubernetes estão configurados para deploy num cluster real com `kubectl apply -f k8s/`.
-
-### Webhook M-Pesa
-
-O endpoint de webhook deve estar exposto numa porta entre `11000` e `19000` conforme especificado pela API Vodacom. O `service.yaml` expõe a porta `11000` para este efeito.
 
 ---
 
-## CI/CD
+## Variáveis de Ambiente
 
-O pipeline está dividido em dois workflows:
+Cria um ficheiro `.env` na raiz com as seguintes variáveis:
 
-**`ci.yml`** — corre em cada push para `develop`:
-1. Instala dependências
-2. Build TypeScript
-3. Linting
-4. Testes unitários e integração
-5. Build Docker
+```dotenv
+PORT=3000
+NODE_ENV=development
 
-**`deploy.yml`** — corre após CI passar em `main`:
-1. Build e push da imagem para Docker Hub com tag do SHA do commit
-2. Deploy no cluster Kubernetes
-3. Rollback automático em caso de falha
+# Base de dados
+DATABASE_URL=postgresql://user:password@localhost:5432/payment_db
+
+# M-Pesa
+MPESA_API_KEY=tua_api_key
+MPESA_PUBLIC_KEY=tua_public_key
+MPESA_BASE_URL=https://openapi.m-pesa.com/sandbox/ipg/v2/vodacomMOZ
+MPESA_SERVICE_PROVIDER_CODE=171717
+```
+
+> Nunca commites o `.env` para o repositório. Confirma que está no `.gitignore`.
 
 ---
 
-## Observabilidade
+## Endpoints
 
-### Logs
+### POST /payments
 
-Logs estruturados em JSON em cada pedido:
+Inicia um pagamento via M-Pesa.
 
+**Body:**
 ```json
 {
-  "timestamp": "2026-05-04T12:00:00Z",
-  "method": "POST",
-  "path": "/api/v1/payments",
-  "status": 202,
-  "duration_ms": 245,
-  "ip": "::1"
+  "amount": 100,
+  "currency": "MZN",
+  "method": "MPESA",
+  "customer_msisdn": "258841234567",
+  "transaction_reference": "T1234567",
+  "third_party_reference": "REF123",
+  "idempotency_key": "chave-unica-001"
 }
 ```
 
-### SLI/SLO
-
-| Indicador | Objectivo |
-|---|---|
-| Latência P95 | < 500ms |
-| Taxa de sucesso | > 99.9% |
-| Disponibilidade | > 99.5% |
-
-### Health Checks
-
-O Kubernetes usa o endpoint `/api/v1/health` para liveness e readiness probes — reinicia automaticamente pods que não respondam.
-
-### Testes de carga
-
-```bash
-k6 run tests/load/payment.k6.js
+**Resposta:**
+```json
+{
+  "id": "uuid",
+  "status": "PENDING",
+  "amount": 100,
+  "currency": "MZN",
+  "created_at": "2026-01-01T00:00:00Z"
+}
 ```
 
 ---
 
-## Liderança Técnica
+### GET /payments/:id
 
-### Gestão de performance da equipa
+Retorna os detalhes de um pagamento pelo ID.
 
-- Definition of Done clara e aplicada consistentemente
-- Code reviews obrigatórios antes de merge para `develop`
-- Conventional Commits para rastreabilidade de mudanças
-- ADRs documentam decisões técnicas com contexto e justificação
-
-### Redução de dívida técnica
-
-- SQL raw em vez de ORM — controlo total sobre queries críticas
-- Separação clara entre camadas — controller, service, repository, gateway
-- Testes automatizados garantem que refactoring não quebra comportamento existente
-- Pipeline CI falha automaticamente se linting ou testes falharem
-
-### Priorização entre negócio e engenharia
-
-- Idempotência implementada ao nível da base de dados — zero risco de cobrança dupla
-- Retry com exponential backoff — resiliência sem impacto na experiência do utilizador
-- Status `PENDING` assíncrono — o utilizador recebe resposta imediata sem esperar pelo M-Pesa
-- Health check público — monitorização sem expor dados sensíveis
+**Resposta:**
+```json
+{
+  "id": "uuid",
+  "status": "SUCCESS",
+  "amount": 100,
+  "currency": "MZN",
+  "customer_msisdn": "258841234567",
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:10Z"
+}
+```
 
 ---
 
-## Development Guidelines
+### POST /webhooks/provider
 
-### Nomenclatura
+Recebe notificações do provider de pagamento (M-Pesa) e actualiza o estado do pagamento.
 
-| Tipo | Convenção | Exemplo |
-|---|---|---|
-| Ficheiros | `snake_case` | `payment_service.ts` |
-| Classes | `PascalCase` | `MpesaGateway` |
-| Variáveis e funções | `camelCase` ou `snake_case` | `createPayment` |
-| Variáveis de ambiente | `SCREAMING_SNAKE_CASE` | `DATABASE_URL` |
-| Pastas | `snake_case` | `payment_api/` |
+**Body (enviado pelo provider):**
+```json
+{
+  "output_TransactionID": "ABC123",
+  "output_ResponseCode": "INS-0",
+  "output_ResponseDesc": "Request processed successfully",
+  "output_ThirdPartyConversationID": "REF123"
+}
+```
 
-### Correr testes
+---
+
+## Idempotência
+
+Todos os pedidos `POST /payments` requerem um `idempotency_key` único. Se um pedido com a mesma chave for enviado mais de uma vez, o sistema retorna o pagamento original sem criar um duplicado. Isto protege contra retries em ambientes de baixa conectividade.
+
+---
+
+## Resiliência
+
+O sistema foi desenhado para funcionar em ambientes de baixa conectividade:
+
+- **Retry automático** — pedidos falhados ao M-Pesa são re-tentados com backoff exponencial
+- **Idempotência** — garante que retries não criam pagamentos duplicados
+- **Timeout configurável** — conexões com timeout de 10 segundos para evitar bloqueios
+- **Estado persistente** — todos os pagamentos são persistidos em PostgreSQL antes de chamar o provider
+
+---
+
+## Testes
 
 ```bash
-# Todos os testes
-npm test
-
 # Testes unitários
 npm run test:unit
 
 # Testes de integração
 npm run test:integration
 
-# Cobertura
-npm run test:coverage
+# Todos os testes
+npm test
+```
+
+Os testes unitários usam mocks para o repositório e para o gateway M-Pesa. Os testes de integração requerem uma base de dados PostgreSQL acessível.
+
+Para testes, cria um ficheiro `.env.test`:
+
+```dotenv
+NODE_ENV=test
+DATABASE_URL=postgres://user:pass@localhost:5432/test_db
+API_KEY=test_key
+MPESA_API_KEY=test_key
+MPESA_PUBLIC_KEY=test_public_key
+MPESA_BASE_URL=https://mock.mpesa.com
+MPESA_SERVICE_PROVIDER_CODE=171717
 ```
 
 ---
 
-## Autoria
+## Deploy com Docker
 
-Desenvolvido por **Penélope Sydney Machafa** 
+```bash
+# Build da imagem
+docker build -t payment-api .
+
+# Correr o container
+docker run -p 3000:3000 --env-file .env payment-api
+```
+
+O deploy é feito automaticamente no Render a cada push para a branch `main` via CI/CD.
+
+---
+
+## CI/CD
+
+O pipeline de CI/CD corre automaticamente no GitHub Actions:
+
+1. Linting e validação de tipos TypeScript
+2. Testes unitários
+3. Testes de integração
+4. Build do container Docker
+5. Deploy no Render (apenas na branch `main`)
+
+O pipeline falha automaticamente se qualquer passo falhar.
+
+---
+
+## Estrutura do Projecto
+
+```
+src/
+├── config/
+│   ├── database.ts       # Configuração do pool PostgreSQL
+│   └── env.ts            # Validação de variáveis de ambiente
+├── modules/
+│   └── payments/
+│       ├── payment_service.ts      # Lógica de negócio
+│       ├── payment_repository.ts   # Acesso à base de dados
+│       └── payment_controller.ts   # Handlers HTTP
+├── gateways/
+│   └── mpesa_gateway.ts  # Integração com M-Pesa
+├── tests/
+│   ├── unit/             # Testes unitários
+│   ├── integration/      # Testes de integração
+│   └── setup.ts          # Configuração de variáveis para testes
+└── app.ts                # Entry point
+```
+
+---
+
+## Segurança
+
+- Variáveis sensíveis (API keys, passwords) nunca são committed no repositório
+- Em produção, as variáveis são injectadas via Render Environment Variables ou Kubernetes Secrets
+- SSL obrigatório em produção para conexões à base de dados
+- Validação de input em todos os endpoints
+
+---
+
+## Contacto
+
+Para questões técnicas, abre uma issue no repositório.
