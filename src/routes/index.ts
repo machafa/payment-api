@@ -16,7 +16,7 @@ router.get('/health', (req, res) => {
 
 router.post(
   '/payments', 
-  authenticate, 
+  //authenticate, 
   validateIdempotency, // validates the header'
   paymentController.createPayment
 );
