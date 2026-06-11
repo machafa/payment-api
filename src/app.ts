@@ -1,15 +1,21 @@
 import express, { Request, Response, NextFunction } from 'express';
 import 'dotenv/config';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { requestLogger } from './middleware/logger.js';
 import { errorHandler } from './middleware/error_handler.js';
 import router from './routes/index.js';
 import { env } from './config/env.js';
 import { setupSwagger } from './config/swagger.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 app.use(requestLogger);
+app.use(express.static(path.join(__dirname, '../public')));
 
 setupSwagger(app);
 

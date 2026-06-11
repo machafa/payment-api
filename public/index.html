@@ -10,76 +10,101 @@
     <div class="w-full max-w-sm bg-white p-8 shadow-xl border border-gray-100">
         <h2 class="text-[#000000] text-xl font-bold mb-6 text-center">Pagamento M-Pesa</h2>
 
+        <div id="msg" class="hidden text-center text-sm font-medium p-2 mb-4 rounded"></div>
+
         <form id="payForm" class="space-y-6">
             <div class="relative">
                 <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-medium">258</span>
                 <input type="tel" id="phone" maxlength="9" required
                        class="w-full pl-14 pr-5 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium"
-                       placeholder="8XXXXXXX">
+                       placeholder="8XXXXXXXX">
             </div>
 
             <div>
-                <input type="number" id="amount" step="0.01" required
+                <input type="number" id="amount" step="0.01" min="1" required
                        class="w-full px-6 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium"
                        placeholder="Valor (MZN)">
             </div>
-
-            <div id="msg" class="hidden text-center text-sm font-medium p-2"></div>
 
             <button type="submit" id="btn"
                     class="w-full bg-[#c30010] text-white py-4 font-bold shadow-xl shadow-blue-100 active:scale-95 transition-all">
                 Confirmar Pagamento
             </button>
         </form>
+
+        <p id="paymentId" class="hidden text-center text-xs text-gray-400 mt-4 font-mono"></p>
     </div>
 
     <script>
+        const API_URL = 'https://payment-api-psll.onrender.com/api/v1/payments';
+
         const form = document.getElementById('payForm');
         const msg = document.getElementById('msg');
         const btn = document.getElementById('btn');
+        const paymentId = document.getElementById('paymentId');
+
+        const errorMap = {
+            'INS-10': 'Pedido já enviado.',
+            'INS-6': 'Transacção recusada.',
+            'INS-2051': 'Número inválido.',
+            'INS-2006': 'Saldo insuficiente.',
+            'INS-5': 'Serviço temporariamente indisponível.',
+        };
+
+        function showMsg(type, text) {
+            msg.innerText = text;
+            msg.className = type === 'success'
+                ? 'block text-center text-sm font-medium p-2 mb-4 rounded text-green-600 bg-green-50'
+                : 'block text-center text-sm font-medium p-2 mb-4 rounded text-red-600 bg-red-50';
+        }
 
         form.onsubmit = async (e) => {
             e.preventDefault();
-            
-            btn.disabled = true;
-            btn.innerText = "A processar...";
-            msg.className = "hidden";
 
-            const fullPhone = "258" + document.getElementById('phone').value;
-            const amount = document.getElementById('amount').value;
+            btn.disabled = true;
+            btn.innerText = 'A processar...';
+            msg.className = 'hidden';
+            paymentId.className = 'hidden';
+
+            const phone = '258' + document.getElementById('phone').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const ref = 'TXN_' + Date.now();
 
             try {
-                const res = await fetch('https://payment-api-psll.onrender.com/api/v1/payments', {
+                const res = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        customer_msisdn: fullPhone, 
-                        amount: amount 
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Idempotency-Key': crypto.randomUUID(),
+                    },
+                    body: JSON.stringify({
+                        amount,
+                        currency: 'MZN',
+                        method: 'MPESA',
+                        customer_msisdn: phone,
+                        transaction_reference: ref,
+                        third_party_reference: ref,
                     })
                 });
 
                 const data = await res.json();
 
                 if (res.ok) {
-                    msg.innerText = "Verifique o seu telemóvel!";
-                    msg.className = "block text-green-600";
+                    showMsg('success', 'Verifique o seu telemóvel!');
+                    if (data.payment_id) {
+                        paymentId.innerText = 'ID: ' + data.payment_id;
+                        paymentId.className = 'block text-center text-xs text-gray-400 mt-4 font-mono';
+                    }
                     form.reset();
                 } else {
-                    // Mapeia os códigos INS que discutimos
-                    const errorMap = {
-                        'INS-10': 'Pedido já enviado.',
-                        'INS-6': 'Transação recusada.',
-                        'INS-2051': 'Número inválido.'
-                    };
-                    msg.innerText = errorMap[data.code] || "Erro ao processar.";
-                    msg.className = "block text-red-500";
+                    const code = data.code || '';
+                    showMsg('error', errorMap[code] || data.error || 'Erro ao processar.');
                 }
             } catch (err) {
-                msg.innerText = "Servidor offline.";
-                msg.className = "block text-red-500";
+                showMsg('error', 'Servidor offline.');
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Confirmar Pagamento";
+                btn.innerText = 'Confirmar Pagamento';
             }
         };
     </script>
