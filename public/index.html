@@ -4,46 +4,16 @@
     <meta charset="UTF-8">
     <title>Payments C2B</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-[#ffffff] flex items-center justify-center min-h-screen">
 
-    <div class="w-full max-w-sm bg-white p-8 shadow-xl border border-gray-100">
-        <h2 class="text-[#000000] text-xl font-bold mb-6 text-center">Pagamento M-Pesa</h2>
+    <div id="root"></div>
 
-        <div id="msg" class="hidden text-center text-sm font-medium p-2 mb-4 rounded"></div>
-
-        <form id="payForm" class="space-y-6">
-            <div class="relative">
-                <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-medium">258</span>
-                <input type="tel" id="phone" maxlength="9" required
-                       class="w-full pl-14 pr-5 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium"
-                       placeholder="8XXXXXXXX">
-            </div>
-
-            <div>
-                <input type="number" id="amount" step="0.01" min="1" required
-                       class="w-full px-6 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium"
-                       placeholder="Valor (MZN)">
-            </div>
-
-            <button type="submit" id="btn"
-                    class="w-full bg-[#c30010] text-white py-4 font-bold shadow-xl shadow-blue-100 active:scale-95 transition-all">
-                Confirmar Pagamento
-            </button>
-        </form>
-
-        <p id="paymentId" class="hidden text-center text-xs text-gray-400 mt-4 font-mono"></p>
-    </div>
-
-    <script>
-        const API_URL = 'https://payment-api-psll.onrender.com/api/v1/payments';
-
-        const form = document.getElementById('payForm');
-        const msg = document.getElementById('msg');
-        const btn = document.getElementById('btn');
-        const paymentId = document.getElementById('paymentId');
-
-        const errorMap = {
+    <script type="text/babel">
+        const ERROR_MAP = {
             'INS-10': 'Pedido já enviado.',
             'INS-6': 'Transacção recusada.',
             'INS-2051': 'Número inválido.',
@@ -51,62 +21,134 @@
             'INS-5': 'Serviço temporariamente indisponível.',
         };
 
-        function showMsg(type, text) {
-            msg.innerText = text;
-            msg.className = type === 'success'
-                ? 'block text-center text-sm font-medium p-2 mb-4 rounded text-green-600 bg-green-50'
-                : 'block text-center text-sm font-medium p-2 mb-4 rounded text-red-600 bg-red-50';
+        const API_URL = 'https://payment-api-p1ta.onrender.com/api/v1/payments';
+
+        function PaymentForm() {
+            // Estados reativos para os inputs e estados da UI
+            const [phone, setPhone] = React.useState('');
+            const [amount, setAmount] = React.useState('');
+            const [loading, setLoading] = React.useState(false);
+            const [message, setMessage] = React.useState(null);
+            const [paymentId, setPaymentId] = React.useState(null);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                
+                setLoading(true);
+                setMessage(null);
+                setPaymentId(null);
+
+                const fullPhone = '258' + phone;
+                const ref = 'TXN_' + Date.now();
+
+                try {
+                    const res = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Idempotency-Key': crypto.randomUUID(),
+                        },
+                        body: JSON.stringify({
+                            amount: parseFloat(amount),
+                            currency: 'MZN',
+                            method: 'MPESA',
+                            customer_msisdn: fullPhone,
+                            transaction_reference: ref,
+                            third_party_reference: ref,
+                        })
+                    });
+
+                    const data = await res.json();
+
+                    if (res.ok) {
+                        setMessage({ type: 'success', text: 'Verifique o seu telemóvel!' });
+                        if (data.payment_id) {
+                            setPaymentId(data.payment_id);
+                        }
+                        // Faz o reset dos campos idêntico ao form.reset()
+                        setPhone('');
+                        setAmount('');
+                    } else {
+                        const code = data.code || '';
+                        setMessage({ 
+                            type: 'error', 
+                            text: ERROR_MAP[code] || data.error || 'Erro ao processar.' 
+                        });
+                    }
+                } catch (err) {
+                    setMessage({ type: 'error', text: 'Servidor offline.' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div class="w-full max-w-sm bg-white p-8 shadow-xl border border-gray-100">
+                    <h2 class="text-[#000000] text-xl font-bold mb-6 text-center">Pagamento M-Pesa</h2>
+
+                    {/* Mensagem Reativa com as tuas classes exatas de CSS */}
+                    {message && (
+                        <div class={`text-center text-sm font-medium p-2 mb-4 rounded ${
+                            message.type === 'success'
+                                ? 'text-green-600 bg-green-50'
+                                : 'text-red-600 bg-red-50'
+                        }`}>
+                            {message.text}
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} class="space-y-6">
+                        <div class="relative">
+                            <span class="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 font-medium">258</span>
+                            <input 
+                                type="tel" 
+                                maxLength="9" 
+                                required 
+                                value={phone}
+                                // Impede a digitação de letras mantendo a validação limpa
+                                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))} 
+                                class="w-full pl-14 pr-5 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium" 
+                                placeholder="8XXXXXXXX" 
+                                disabled={loading} 
+                            />
+                        </div>
+
+                        <div>
+                            <input 
+                                type="number" 
+                                step="0.01" 
+                                min="1" 
+                                required 
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                class="w-full px-6 py-4 bg-gray-50 focus:ring-2 focus:ring-[#000000] outline-none text-[#000000] font-medium" 
+                                placeholder="Valor (MZN)" 
+                                disabled={loading} 
+                            />
+                        </div>
+
+                        <button 
+                            type="submit" 
+                            disabled={loading} 
+                            class="w-full bg-[#c30010] text-white py-4 font-bold shadow-xl shadow-blue-100 active:scale-95 transition-all disabled:opacity-70 disabled:scale-100"
+                        >
+                            {loading ? 'A processar...' : 'Confirmar Pagamento'}
+                        </button>
+                    </form>
+
+                    {/* Exibição condicional do ID do pagamento */}
+                    {paymentId && (
+                        <p class="text-center text-xs text-gray-400 mt-4 font-mono">
+                            ID: {paymentId}
+                        </p>
+                    )}
+                </div>
+            );
         }
 
-        form.onsubmit = async (e) => {
-            e.preventDefault();
-
-            btn.disabled = true;
-            btn.innerText = 'A processar...';
-            msg.className = 'hidden';
-            paymentId.className = 'hidden';
-
-            const phone = '258' + document.getElementById('phone').value;
-            const amount = parseFloat(document.getElementById('amount').value);
-            const ref = 'TXN_' + Date.now();
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Idempotency-Key': crypto.randomUUID(),
-                    },
-                    body: JSON.stringify({
-                        amount,
-                        currency: 'MZN',
-                        method: 'MPESA',
-                        customer_msisdn: phone,
-                        transaction_reference: ref,
-                        third_party_reference: ref,
-                    })
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    showMsg('success', 'Verifique o seu telemóvel!');
-                    if (data.payment_id) {
-                        paymentId.innerText = 'ID: ' + data.payment_id;
-                        paymentId.className = 'block text-center text-xs text-gray-400 mt-4 font-mono';
-                    }
-                    form.reset();
-                } else {
-                    const code = data.code || '';
-                    showMsg('error', errorMap[code] || data.error || 'Erro ao processar.');
-                }
-            } catch (err) {
-                showMsg('error', 'Servidor offline.');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = 'Confirmar Pagamento';
-            }
-        };
+        // Inicialização do ecossistema React na DOM
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PaymentForm />);
     </script>
 </body>
 </html>
