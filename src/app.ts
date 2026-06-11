@@ -19,6 +19,11 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 setupSwagger(app);
 
+// -> ADICIONA ESTA ROTA AQUI: Garante que a raiz do domínio entrega o index.html reativo
+app.get('/', (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 app.use('/api/v1', router);
 
 app.use(errorHandler);
