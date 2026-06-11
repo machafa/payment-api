@@ -18,8 +18,8 @@ const swaggerDocument = {
       description: 'Ambiente de Desenvolvimento Local',
     },
     {
-      url: 'https://payment-api.wolkehost.com/api/v1',
-      description: 'Ambiente de Produção (Wolke Host)',
+      url: 'https://payment-api-psll.onrender.com/api/v1',
+      description: 'Ambiente de Produção (Render)',
     }
   ],
   components: {
