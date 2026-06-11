@@ -26,13 +26,14 @@ export const createPayment = async (data: createPaymentDTO): Promise<Payment> =>
     }
 };
 
-export const updatePaymentStatus= async(reference: string, staus:'COMPLETED' | 'FAILED',mpesaTransactionId?: string) => {
-    console.log(`Atualizando status do pagamento com referência ${reference} para ${staus}`);
-    return await paymentRepository.updateByReference(reference,{
+export const updatePaymentStatus = async (reference: string, status: 'COMPLETED' | 'FAILED', mpesaTransactionId?: string) => {
+    console.log(`Atualizando status do pagamento com referência ${reference} para ${status}`);
+    return await paymentRepository.updateByReference(reference, {
         status: status,
-    mpesa_transaction_id:mpesaTransactionId,
-    updated_at: new Date(),});
-}
+        mpesa_transaction_id: mpesaTransactionId,
+        updated_at: new Date(),
+    });
+};
 
 export const getPayment = async (id: string): Promise<Payment | null> => {
     return paymentRepository.findById(id);
