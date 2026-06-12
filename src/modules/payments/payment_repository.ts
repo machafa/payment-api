@@ -1,6 +1,7 @@
 import { Payment, createPaymentDTO, updatePaymentDTO } from './payment_types.js'; 
 import { randomUUID } from 'crypto';
 
+// Tabela simulada em memória usando um Map nativo do TypeScript
 const paymentsMockTable = new Map<string, Payment>();
 
 export const findByIdempotencyKey = async (key: string): Promise<Payment | null> => {
@@ -103,63 +104,3 @@ export const updateByReference = async (
   paymentsMockTable.set(updatedPayment.id, updatedPayment);
   return updatedPayment;
 };
-      data.third_party_reference,
-      data.idempotency_key,
-    ]
-  );
-
-  return result.rows[0];
-};
-
-export const update = async (id: string, data: updatePaymentDTO): Promise<Payment> => {
-  const result = await query(
-    `UPDATE payments
-     SET
-       status = $1,
-       mpesa_transaction_id = $2,
-       mpesa_conversation_id = $3,
-       updated_at = NOW()
-     WHERE id = $4
-     RETURNING *`,
-    [
-      data.status,
-      data.mpesa_transaction_id || null,
-      data.mpesa_conversation_id || null,
-      id,
-    ]
-  );
-
-  return result.rows[0];
-};
-
-export const findByThirdPartyReference = async (reference: string): Promise<Payment | null> => {
-  const result = await query(
-    'SELECT * FROM payments WHERE third_party_reference = $1',
-    [reference]
-  );
-  return result.rows[0] || null;
-};
-
-export const updateByReference = async (
-  reference: string, data: {status:string; mpesa_transaction_id?: string; updated_at: Date})=>{
-    const query = `
-    UPDATE payments 
-    SET 
-      status = $1, 
-      mpesa_transaction_id = $2, 
-      updated_at = $3 
-    WHERE third_party_reference = $4
-    RETURNING *;
-  `;
-
-  const values = [
-    data.status, 
-    data.mpesa_transaction_id || null, 
-    data.updated_at, 
-    reference
-  ];
-
-  // execute the query
-  const result=await db.query(query,values);
-  return result.rows[0];
-  }
