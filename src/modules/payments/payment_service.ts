@@ -1,5 +1,5 @@
 import * as paymentRepository from './payment_repository.js';
-import { initiatePayment } from '../../gateways/mpesa_gateway.js'; 
+// import { initiatePayment } from '../../gateways/mpesa_gateway.js'; // Comentado para o MVP
 import { createPaymentDTO, Payment } from './payment_types.js';
 
 export const createPayment = async (data: createPaymentDTO): Promise<Payment> => {
@@ -9,7 +9,10 @@ export const createPayment = async (data: createPaymentDTO): Promise<Payment> =>
     const payment = await paymentRepository.create(data);
 
     try {
-        // Agora chama a função diretamente
+        console.log(`[MOCK GATEWAY] Simular envio de USSD Push para o número: ${data.customer_msisdn} no valor de ${data.amount} MZN`);
+        
+        /* 
+        // MOCK DE PRODUÇÃO: Desativado temporariamente para a apresentação de Front-end
         await initiatePayment({
             amount: data.amount,
             customer_msisdn: data.customer_msisdn,
@@ -17,6 +20,10 @@ export const createPayment = async (data: createPaymentDTO): Promise<Payment> =>
             third_party_reference: data.third_party_reference,
             service_provider_code: process.env.MPESA_SERVICE_PROVIDER_CODE || '171717',
         });
+        */
+        
+        
+        console.log('[MOCK GATEWAY] API do M-Pesa respondeu com Sucesso (Simulado).');
         
         return payment;
     } catch (error) {
