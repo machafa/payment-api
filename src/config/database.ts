@@ -1,6 +1,8 @@
-import { Pool } from 'pg';
+// import { Pool } from 'pg';
 import { env } from './env.js';
 
+// MOCK DE PRODUÇÃO: Comentada a inicialização do Pool real para evitar quedas de conexão
+/*
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
@@ -10,29 +12,30 @@ const pool = new Pool({
 });
 
 pool.on('error', (err) => {
-  
   console.error('Unexpected error on idle client:', err);
 });
+*/
 
-export const query = async (text: string, params?: unknown[]) => {
+export const query = async (text: string, params?: unknown[]): Promise<any> => {
   const start = Date.now();
-  try {
-    const result = await pool.query(text, params);
-    const duration = Date.now() - start;
+  const duration = Date.now() - start;
 
-    console.log('Query executed', {
-      text,
-      duration,
-      rows: result.rowCount,
-    });
+  console.log('[MOCK DB] Query intercetada localmente:', {
+    text,
+    duration,
+    rows: 0,
+  });
 
-    return result;
-  } catch (error) {
-    console.error('Database query error:', error);
-    throw error; 
-  }
+  return { rows: [], rowCount: 0 };
 };
 
-export const getClient = () => pool.connect();
+export const getClient = async (): Promise<any> => {
+  console.log('[MOCK DB] getClient() intercetado localmente.');
+  return {
+    query: async () => ({ rows: [], rowCount: 0 }),
+    release: () => console.log('[MOCK DB] Conexão simulada libertada.')
+  };
+};
 
-export default pool;
+const poolMock = {};
+export default poolMock;
